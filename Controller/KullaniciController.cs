@@ -16,38 +16,38 @@ namespace EBM.Controllers
             _context = context;
         }
 
-        // POST: api/kullanici
-        [HttpPost]
-        public IActionResult CreateUser([FromBody] KullaniciCreateDto dto)
+
+
+        [HttpPost("kayit")]
+        public IActionResult Kayit([FromBody] KullaniciDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            // Aynı e-posta + aynı rol ile kayıt varsa engelle
+            var ayniRoldeKayitVarMi = _context.Kullanicilar
+                .Any(k => k.Email == dto.Email && k.Rol == dto.Rol);
+
+            if (ayniRoldeKayitVarMi)
+            {
+                return BadRequest("Bu e-posta adresiyle bu rol için zaten kayıt yapılmış.");
+            }
 
             var kullanici = new Kullanici
             {
                 AdSoyad = dto.AdSoyad,
                 Email = dto.Email,
-                Sifre = dto.Sifre,
+                Sifre = BCrypt.Net.BCrypt.HashPassword(dto.Sifre),
                 Telefon = dto.Telefon,
                 Adres = dto.Adres,
                 Rol = dto.Rol,
-                CipBakiye = dto.CipBakiye ?? 0,
-                ParaBakiye = dto.ParaBakiye ?? 0
+                CipBakiye = dto.Rol == "Müşteri" || dto.Rol == "Aracı" ? 0 : null,
+                ParaBakiye = dto.Rol == "Firma" ? 0 : null
             };
 
             _context.Kullanicilar.Add(kullanici);
             _context.SaveChanges();
 
-            return CreatedAtAction(nameof(GetUserById), new { id = kullanici.Id }, kullanici);
-        }
-
-        // GET: api/kullanici/5
-        [HttpGet("{id}")]
-        public IActionResult GetUserById(int id)
-        {
-            var user = _context.Kullanicilar.Find(id);
-            if (user == null) return NotFound();
-            return Ok(user);
+            return Ok(new { mesaj = "Kayıt başarılı", kullanici.Id });
         }
     }
+    
+
 }
