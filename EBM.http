@@ -1,0 +1,6 @@
+@EBM_HostAddress = http://localhost:5249
+
+GET {{EBM_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
