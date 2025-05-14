@@ -141,3 +141,4 @@
 /Users/kubrasaglam/Desktop/EBM/EBM/obj/Debug/net8.0/EBM.pdb
 /Users/kubrasaglam/Desktop/EBM/EBM/obj/Debug/net8.0/EBM.genruntimeconfig.cache
 /Users/kubrasaglam/Desktop/EBM/EBM/obj/Debug/net8.0/ref/EBM.dll
+/Users/kubrasaglam/Desktop/EBM/EBM/obj/Debug/net8.0/EBM.sourcelink.json

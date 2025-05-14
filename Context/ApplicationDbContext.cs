@@ -12,6 +12,7 @@ namespace EBM.Data
         public DbSet<SatinAlim> SatinAlimlar { get; set; }
         public DbSet<AcikArtirma> AcikArtirmalar { get; set; }
         public DbSet<Teklif> Teklifler { get; set; }
+        public DbSet<Odul> Oduller { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -72,6 +73,13 @@ namespace EBM.Data
                 .WithMany(a => a.Teklifler)
                 .HasForeignKey(t => t.AcikArtirmaId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            modelBuilder.Entity<Odul>()
+                .HasOne(o => o.Kullanici)
+                .WithMany(k => k.Oduller) // Kullanici tarafına da ICollection eklemeliyiz
+                .HasForeignKey(o => o.KullaniciId)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }

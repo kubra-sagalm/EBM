@@ -16,4 +16,7 @@ public class Kullanici
     public ICollection<SatinAlim> SatinAlimlar { get; set; }
     public ICollection<AcikArtirma> AcikArtirmalar { get; set; }
     public ICollection<Teklif> Teklifler { get; set; }
+    public ICollection<Odul> Oduller { get; set; }
+    
+
 }
