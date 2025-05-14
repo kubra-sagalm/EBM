@@ -1,32 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj": {}
+    "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj": {
+    "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj",
+        "projectUniqueName": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
         "projectName": "EBM",
-        "projectPath": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj",
-        "packagesPath": "C:\\Users\\Lenovo\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\obj\\",
+        "projectPath": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
+        "packagesPath": "/Users/kubrasaglam/.nuget/packages",
+        "outputPath": "/Users/kubrasaglam/Desktop/EBM/EBM/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Lenovo\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/kubrasaglam/Desktop/EBM/EBM/NuGet.Config",
+          "/Users/kubrasaglam/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -96,7 +90,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.401/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.403/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

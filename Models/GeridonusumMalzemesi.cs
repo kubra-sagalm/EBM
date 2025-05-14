@@ -5,6 +5,8 @@ public class GeridonusumMalzemesi
     public int Id { get; set; }
     public int MusteriId { get; set; }
     public Kullanici Musteri { get; set; }
+    public int? BlokeEdenAraciId { get; set; } // Nullable yap, istersen zorunluysa int
+
 
     public string Turu { get; set; }
     public float MiktarKg { get; set; }
