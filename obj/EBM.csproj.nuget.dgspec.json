@@ -1,26 +1,32 @@
 {
   "format": 1,
   "restore": {
-    "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj": {}
+    "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj": {}
   },
   "projects": {
-    "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj": {
+    "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
+        "projectUniqueName": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj",
         "projectName": "EBM",
-        "projectPath": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
-        "packagesPath": "/Users/kubrasaglam/.nuget/packages/",
-        "outputPath": "/Users/kubrasaglam/Desktop/EBM/EBM/obj/",
+        "projectPath": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\EBM.csproj",
+        "packagesPath": "C:\\Users\\Lenovo\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Lenovo\\Desktop\\EBM 1\\EBM\\obj\\",
         "projectStyle": "PackageReference",
-        "UsingMicrosoftNETSdk": false,
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/Users/kubrasaglam/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\Lenovo\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -90,7 +96,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.403/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
