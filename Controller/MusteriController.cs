@@ -47,4 +47,15 @@ public class MusteriController : ControllerBase
         _context.SaveChanges();
         return Ok("Ödül başarıyla alındı.");
     }
+    
+    [HttpGet("odul/listele")]
+    public IActionResult TumOdulleriListele()
+    {
+        // KullaniciId ve AlinmaTarihi boş olan ödüller henüz kimse tarafından alınmamıştır
+        var oduller = _context.Oduller
+            .Where(o => o.KullaniciId == null && o.AlinmaTarihi == null)
+            .ToList();
+
+        return Ok(oduller);
+    }
 }

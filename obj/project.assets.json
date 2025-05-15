@@ -3647,7 +3647,7 @@
     ]
   },
   "packageFolders": {
-    "/Users/kubrasaglam/.nuget/packages": {}
+    "/Users/kubrasaglam/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
@@ -3655,11 +3655,11 @@
       "projectUniqueName": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
       "projectName": "EBM",
       "projectPath": "/Users/kubrasaglam/Desktop/EBM/EBM/EBM.csproj",
-      "packagesPath": "/Users/kubrasaglam/.nuget/packages",
+      "packagesPath": "/Users/kubrasaglam/.nuget/packages/",
       "outputPath": "/Users/kubrasaglam/Desktop/EBM/EBM/obj/",
       "projectStyle": "PackageReference",
+      "UsingMicrosoftNETSdk": false,
       "configFilePaths": [
-        "/Users/kubrasaglam/Desktop/EBM/EBM/NuGet.Config",
         "/Users/kubrasaglam/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
