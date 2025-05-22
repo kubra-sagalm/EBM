@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EBM.Data;
 using EBM.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EBM.Controllers;
 
@@ -12,6 +13,7 @@ namespace EBM.Controllers;
 public class MusteriController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+
 
     public MusteriController(ApplicationDbContext context)
     {
@@ -58,4 +60,102 @@ public class MusteriController : ControllerBase
 
         return Ok(oduller);
     }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> MalzemeEkle([FromBody] GeridonusumEkleModel model)
+    {
+        try
+        {
+            // Kullanıcı oturumda mı?
+            if (User == null || !User.Identity.IsAuthenticated)
+                return Unauthorized("Giriş yapılmamış.");
+
+            // Kullanıcı ID'sini claim'den al
+            var kullaniciIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(kullaniciIdStr))
+                return Unauthorized("JWT içinde kullanıcı ID'si bulunamadı.");
+
+            if (!int.TryParse(kullaniciIdStr, out int musteriId))
+                return Unauthorized("Kullanıcı ID'si geçerli değil.");
+
+            // Yeni kayıt oluştur
+            var malzeme = new GeridonusumMalzemesi
+            {
+                Turu = model.Turu,
+                MiktarKg = model.MiktarKg,
+                Tarih = DateTime.UtcNow,
+                MusteriId = musteriId,
+                Durum = "Beklemede" // ✅ NULL gelmesini engeller
+            };
+
+            _context.Malzemeler.Add(malzeme);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Malzeme başarıyla eklendi." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("🔥 HATA:", ex);
+            return StatusCode(500, "❌ Beklenmeyen hata: " + ex.Message);
+        }
+    }
+    
+    
+    [Authorize]
+    [HttpGet("gecmisim")]
+    public async Task<IActionResult> MalzemeGecmisi()
+    {
+        var kullaniciIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(kullaniciIdStr, out int musteriId))
+            return Unauthorized("Kullanıcı ID’si geçersiz.");
+
+        var gecmis = await _context.Malzemeler
+            .Where(m => m.MusteriId == musteriId)
+            .OrderByDescending(m => m.Tarih)
+            .Select(m => new
+            {
+                m.Id, 
+                m.Turu,
+                m.MiktarKg,
+                m.Tarih,
+                m.Durum,
+                m.KazandigiCip
+            })
+            .ToListAsync();
+
+        return Ok(gecmis);
+    }
+
+
+    [Authorize]
+    [HttpPost("malzeme/iptal")]
+    public async Task<IActionResult> MalzemeIptalEt([FromBody] int malzemeId)
+    {
+        var kullaniciIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(kullaniciIdStr, out int musteriId))
+            return Unauthorized("Kullanıcı ID geçersiz.");
+
+        var malzeme = await _context.Malzemeler
+            .FirstOrDefaultAsync(m => m.Id == malzemeId && m.MusteriId == musteriId);
+
+        if (malzeme == null)
+            return NotFound(new { message = "Malzeme bulunamadı." });
+
+
+        if (malzeme.Durum?.ToLower() == "iptal edildi")
+            return BadRequest("Malzeme zaten iptal edilmiş.");
+
+        malzeme.Durum = "iptal edildi";
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Malzeme başarıyla iptal edildi." });
+    }
+
+    
+    
+    
+
 }

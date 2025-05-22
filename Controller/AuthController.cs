@@ -61,6 +61,7 @@ public class AuthController : ControllerBase
 
         var claims = new[]
         {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // 👈 Kullanıcı ID'yi ekledik
             new Claim("name", user.Email),
             new Claim("role", user.Rol),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
@@ -79,7 +80,9 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            token = new JwtSecurityTokenHandler().WriteToken(token)
+            token = new JwtSecurityTokenHandler().WriteToken(token),
+            role = user.Rol
         });
     }
+
 }

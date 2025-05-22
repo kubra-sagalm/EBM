@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EBM.Data;
@@ -62,6 +63,52 @@ public class AdminController : ControllerBase
 
         return Ok($"Açık artırma kapatıldı. Kazanan teklif: {kazananTeklif.TeklifTutar}");
     }
+    
+    [HttpPost("kullaniciya-cip-para-yukle")]
+    public IActionResult KullaniciyaCipVeParaYukle([FromBody] CipYuklemeModel model)
+    {
+        var kullanici = _context.Kullanicilar.FirstOrDefault(k => k.Id == model.KullaniciId);
+
+        if (kullanici == null)
+            return NotFound("Kullanıcı bulunamadı.");
+
+        kullanici.CipBakiye += model.EklenecekCip;
+        kullanici.ParaBakiye = (kullanici.ParaBakiye ?? 0) + model.EklenecekPara;
+
+        _context.SaveChanges();
+
+        return Ok(new
+        {
+            mesaj = "Çip ve para başarıyla yüklendi.",
+            kullanici = kullanici.AdSoyad,
+            yeniCipBakiyesi = kullanici.CipBakiye,
+            yeniParaBakiyesi = kullanici.ParaBakiye
+        });
+    }
+
+    
+    [Authorize]
+    [HttpGet("cipbakiye")]
+    public async Task<IActionResult> CipBakiyem()
+    {
+        var kullaniciIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(kullaniciIdStr, out int musteriId))
+            return Unauthorized("Geçersiz kullanıcı kimliği.");
+
+        var musteri = await _context.Kullanicilar
+            .FirstOrDefaultAsync(k => k.Id == musteriId);
+
+        if (musteri == null)
+            return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+        return Ok(new
+        {
+            cipBakiye = musteri.CipBakiye,
+            adSoyad = musteri.AdSoyad
+        });
+    }
+
 
     
     

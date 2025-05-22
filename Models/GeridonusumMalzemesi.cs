@@ -7,11 +7,13 @@ public class GeridonusumMalzemesi
     public int Id { get; set; }
     public int MusteriId { get; set; }
     public Kullanici Musteri { get; set; }
-    [NotMapped]
+
     public int? BlokeEdenAraciId { get; set; }
 
-    [NotMapped]
+
     public Kullanici BlokeEdenAraci { get; set; }
+    public DateTime? BlokeEdilmeTarihi { get; set; } // nullable olsun çünkü ilk başta boş
+
 
 
     public string Turu { get; set; }

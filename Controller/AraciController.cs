@@ -19,55 +19,64 @@ public class AraciController : ControllerBase
         _context = context;
     }
 
-    // 📦 Bekleyen geri dönüşüm malzemelerini listeler
+    [Authorize(Roles = "araci")]
     [HttpGet("bekleyen-malzeme-listesi")]
-    public IActionResult BekleyenMalzemeleriListele()
+    public async Task<IActionResult> BekleyenMalzemeler()
     {
-        var malzemeler = _context.Malzemeler
-            .Where(m => m.Durum == "bekliyor")
-            .OrderByDescending(m => m.Tarih)
+        var malzemeler = await _context.Malzemeler
+            .Where(m => m.Durum == "Beklemede")
+            .Include(m => m.Musteri)
             .Select(m => new
             {
                 m.Id,
                 m.Turu,
                 m.MiktarKg,
-                m.KazandigiCip,
-                Tarih = m.Tarih.ToString("yyyy-MM-dd HH:mm"),
-                MusteriAdSoyad = m.Musteri.AdSoyad,
-                MusteriEmail = m.Musteri.Email
+                m.Tarih,
+                musteriId = m.MusteriId,
+                musteriAdSoyad = m.Musteri.AdSoyad,
+                musteriAdres = m.Musteri.Adres,
+                musteriTelefon = m.Musteri.Telefon
             })
-            .ToList();
+            .ToListAsync();
 
         return Ok(malzemeler);
     }
+
     
     [HttpPost("malzeme-bloke-et")]
     [Authorize(Roles = "araci")]
     public IActionResult MalzemeBlokeEt([FromBody] int malzemeId)
     {
+        // JWT içinden e-posta bilgisi alınır
         var email = User.FindFirstValue("name");
-        var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+        if (string.IsNullOrEmpty(email))
+            return Unauthorized("Kullanıcı bilgisi alınamadı.");
 
-        if (araci == null || araci.Rol != "araci")
-            return Unauthorized("Bu işlem yalnızca aracı rolündeki kullanıcılar tarafından yapılabilir.");
+        // Giriş yapan kullanıcı aracı mı kontrolü
+        var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email && k.Rol == "araci");
+        if (araci == null)
+            return Unauthorized("Bu işlem yalnızca aracı kullanıcılar tarafından yapılabilir.");
 
+        // Malzeme kontrolü
         var malzeme = _context.Malzemeler.FirstOrDefault(m => m.Id == malzemeId);
-
         if (malzeme == null)
             return NotFound("Malzeme bulunamadı.");
 
-        if (malzeme.Durum != "bekliyor")
-            return BadRequest("Sadece bekleyen durumundaki malzemeler bloke edilebilir.");
+        if (malzeme.Durum != "Beklemede")
+            return BadRequest("Sadece 'Beklemede' durumundaki malzemeler bloke edilebilir.");
 
+        // Bloke işlemi
         malzeme.Durum = "bloke edildi";
-        malzeme.BlokeEdenAraciId = araci.Id; 
+        malzeme.BlokeEdenAraciId = araci.Id; // ✅ giriş yapan kullanıcının ID'si atanıyor
+        malzeme.Tarih = DateTime.UtcNow;     // ❗ opsiyonel: bloke zamanı güncellenebilir
+        malzeme.BlokeEdilmeTarihi = DateTime.UtcNow; // UTC kullanımı önerilir
+
         _context.SaveChanges();
 
         return Ok("Malzeme başarıyla bloke edildi.");
     }
 
-    
-    
+
     [HttpGet("benim-bloke-ettiklerim")]
     [Authorize(Roles = "araci")]
     public IActionResult BenimBlokeEttiklerim()
@@ -75,26 +84,45 @@ public class AraciController : ControllerBase
         var email = User.FindFirstValue("name");
         var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
 
-        if (araci == null || araci.Rol != "araci")
-            return Unauthorized("Yalnızca aracı rolündeki kullanıcılar erişebilir.");
+        if (araci == null)
+            return Unauthorized();
 
-        var blokeEdilenler = _context.Malzemeler
-            .Where(m => m.Durum == "bloke edildi" && m.BlokeEdenAraciId == araci.Id)
-            .OrderByDescending(m => m.Tarih)
+        var now = DateTime.UtcNow;
+
+        var malzemeler = _context.Malzemeler
+            .Include(m => m.Musteri)
+            .Where(m => m.BlokeEdenAraciId == araci.Id && m.Durum == "bloke edildi")
+            .ToList();
+
+        foreach (var m in malzemeler)
+        {
+            if (m.BlokeEdilmeTarihi.HasValue && now > m.BlokeEdilmeTarihi.Value.AddHours(2))
+            {
+                m.Durum = "Bekliyor";
+                m.BlokeEdenAraciId = null;
+                m.BlokeEdilmeTarihi = null;
+            }
+        }
+
+        _context.SaveChanges();
+
+        var result = malzemeler
+            .Where(m => m.Durum == "bloke edildi") // Güncellenenlerin dışındaki kalanlar
             .Select(m => new
             {
                 m.Id,
                 m.Turu,
                 m.MiktarKg,
                 m.KazandigiCip,
-                Tarih = m.Tarih.ToString("yyyy-MM-dd HH:mm"),
-                MusteriAdSoyad = m.Musteri.AdSoyad,
-                MusteriEmail = m.Musteri.Email
-            })
-            .ToList();
+                m.Durum,
+                m.BlokeEdilmeTarihi,
+                MusteriAdSoyad = m.Musteri.AdSoyad
+            }).ToList();
 
-        return Ok(blokeEdilenler);
+        return Ok(result);
     }
+
+
 
     [HttpGet("malzeme-detay/{malzemeId}")]
     [Authorize(Roles = "araci")]
@@ -148,13 +176,15 @@ public class AraciController : ControllerBase
         if (malzeme == null)
             return NotFound("Bu malzeme size ait değil veya bloke edilmemiş.");
 
-        malzeme.Durum = "bekliyor";
+        malzeme.Durum = "Beklemede";
         malzeme.BlokeEdenAraciId = null;
+        malzeme.BlokeEdilmeTarihi = null; // 🔴 Bloke tarihi de sıfırlanır
 
         _context.SaveChanges();
 
         return Ok("Malzemenin blokesi iptal edildi.");
     }
+
 
 
     [HttpPost("malzeme-satin-al")]
@@ -177,25 +207,33 @@ public class AraciController : ControllerBase
         if (malzeme == null)
             return NotFound("Malzeme bulunamadı ya da size ait değil.");
 
-        // Çip ve para hesaplama
-        int verilenCip = (int)(malzeme.MiktarKg * 10);
-        decimal paraKarsiligi = verilenCip / 10.0m;
+        // Gerekli çip hesaplama (örneğin 1 kg = 10 çip)
+        int gerekenCip = (int)(malzeme.MiktarKg * 10);
+        decimal paraKarsiligi = gerekenCip / 10.0m;
 
-        // Müşteriye kazanç ekle
+        if (araci.CipBakiye < gerekenCip)
+        {
+            return BadRequest($"Yetersiz çip bakiyesi. Satın alma için {gerekenCip} çip gerekir, sizin bakiyeniz {araci.CipBakiye}.");
+        }
+
+        // Müşteriye çip ve para ekle
         var musteri = malzeme.Musteri;
-        musteri.CipBakiye += verilenCip;
+        musteri.CipBakiye += gerekenCip;
         musteri.ParaBakiye = (musteri.ParaBakiye ?? 0) + paraKarsiligi;
+
+        // Aracıdan çip düş
+        araci.CipBakiye -= gerekenCip;
 
         // Malzeme durumu güncelle
         malzeme.Durum = "satildi";
 
-        // SatinAlim tablosuna kayıt
+        // SatinAlim kaydı
         var satinAlim = new SatinAlim
         {
             AraciId = araci.Id,
             MalzemeId = malzeme.Id,
             Tarih = DateTime.UtcNow,
-            VerilenCip = verilenCip
+            VerilenCip = gerekenCip
         };
 
         _context.SatinAlimlar.Add(satinAlim);
@@ -203,14 +241,14 @@ public class AraciController : ControllerBase
 
         return Ok(new
         {
-            mesaj = "Malzeme başarıyla satın alındı ve kayıt edildi.",
+            mesaj = "✅ Malzeme başarıyla satın alındı.",
             musteri = musteri.AdSoyad,
-            kazandigiCip = verilenCip,
-            paraKarsiligi = paraKarsiligi
+            kazandigiCip = gerekenCip,
+            paraKarsiligi = paraKarsiligi,
+            kalanCip = araci.CipBakiye
         });
     }
 
-    
     [HttpGet("satin-aldiklarim-ozet")]
     [Authorize(Roles = "araci")]
     public IActionResult SatinAldiklarimOzet()
@@ -221,19 +259,25 @@ public class AraciController : ControllerBase
         if (araci == null || araci.Rol != "araci")
             return Unauthorized("Aracı kullanıcı bulunamadı.");
 
-        var ozet = _context.SatinAlimlar
-            .Where(sa => sa.AraciId == araci.Id)
+        var satinAlinanlar = _context.SatinAlimlar
             .Include(sa => sa.Malzeme)
-            .GroupBy(sa => sa.Malzeme.Turu)
-            .Select(g => new
+            .Where(sa => sa.AraciId == araci.Id)
+            .ToList();
+
+        // Sadece açık artırmada olmayanları al
+        var filtrelenmis = satinAlinanlar
+            .Where(sa => !_context.AcikArtirmalar.Any(a => a.MalzemeId == sa.MalzemeId))
+            .Select(sa => new
             {
-                Turu = g.Key,
-                ToplamKg = g.Sum(sa => sa.Malzeme.MiktarKg)
+                SatinAlimId = sa.Id,
+                Turu = sa.Malzeme.Turu,
+                ToplamKg = sa.Malzeme.MiktarKg
             })
             .ToList();
 
-        return Ok(ozet);
+        return Ok(filtrelenmis);
     }
+
     
     [HttpPost("acik-artirmaya-gonder")]
     [Authorize(Roles = "araci")]
@@ -306,9 +350,9 @@ public class AraciController : ControllerBase
         return Ok(liste);
     }
     
-    [HttpGet("cip-bakiye-ve-gecmis")]
+    [HttpGet("satin-alim-gecmisim")]
     [Authorize(Roles = "araci")]
-    public IActionResult CipBakiyesiVeGecmis()
+    public IActionResult SatinAlimGecmisim()
     {
         var email = User.FindFirstValue("name");
         var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
@@ -316,25 +360,49 @@ public class AraciController : ControllerBase
         if (araci == null)
             return Unauthorized("Kullanıcı bulunamadı.");
 
-        var satinAlimlar = _context.SatinAlimlar
-            .Include(sa => sa.Malzeme)
+        var gecmis = _context.SatinAlimlar
             .Where(sa => sa.AraciId == araci.Id)
+            .Include(sa => sa.Malzeme)
             .OrderByDescending(sa => sa.Tarih)
             .Select(sa => new
             {
                 MalzemeTuru = sa.Malzeme.Turu,
                 MiktarKg = sa.Malzeme.MiktarKg,
                 VerilenCip = sa.VerilenCip,
-                Tarih = sa.Tarih.ToString("yyyy-MM-dd HH:mm")
+                Tarih = sa.Tarih.ToString("yyyy-MM-dd HH:mm"),
+                MalzemeDurumu = sa.Malzeme.Durum
             })
             .ToList();
 
-        return Ok(new
-        {
-            ToplamCipBakiyesi = araci.CipBakiye,
-            SatinAlimGecmisi = satinAlimlar
-        });
+        return Ok(gecmis);
     }
+
+    
+    [HttpGet("odul-harcama-gecmisi")]
+    [Authorize(Roles = "araci")]
+    public IActionResult OdulHarcamaGecmisi()
+    {
+        var email = User.FindFirstValue("name");
+        var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+
+        if (araci == null)
+            return Unauthorized("Aracı kullanıcı bulunamadı.");
+
+        var harcamaListesi = _context.Oduller
+            .Where(o => o.KullaniciId == araci.Id && o.AlinmaTarihi != null)
+            .OrderByDescending(o => o.AlinmaTarihi)
+            .Select(o => new
+            {
+                OdulAdi = o.Ad,
+                HarcananCip = o.GerekliCip,
+                AlinmaTarihi = o.AlinmaTarihi.Value.ToString("yyyy-MM-dd HH:mm")
+            })
+            .ToList();
+
+        return Ok(harcamaListesi);
+    }
+
+
 
     [HttpGet("acik-artirma-tekliflerim")]
     [Authorize(Roles = "araci")]

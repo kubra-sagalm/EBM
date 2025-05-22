@@ -3,6 +3,7 @@ using System;
 using EBM.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EBM.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250522120327_FixBlokeEdenAraciId")]
+    partial class FixBlokeEdenAraciId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,9 +82,6 @@ namespace EBM.Migrations
 
                     b.Property<int?>("BlokeEdenAraciId")
                         .HasColumnType("integer");
-
-                    b.Property<DateTime?>("BlokeEdilmeTarihi")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Durum")
                         .IsRequired()
