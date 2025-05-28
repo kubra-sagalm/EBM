@@ -38,6 +38,8 @@ namespace EBM.Controllers
             return Ok(acikArtirmalar);
         }
 
+// FirmaController.cs
+
         [HttpGet("teklif-gecmisi")]
         [Authorize(Roles = "firma")]
         public async Task<IActionResult> TeklifGecmisi()
@@ -56,38 +58,31 @@ namespace EBM.Controllers
                 .ThenInclude(a => a.Malzeme)
                 .Select(t => new
                 {
-                    MalzemeTuru = t.AcikArtirma.Malzeme.Turu,
-                    MalzemeMiktari = t.AcikArtirma.Malzeme.MiktarKg,
-                    TeklifTutar = t.TeklifTutar,
-                    Tarih = t.Tarih,
-                    Durum = t.Durum
+                    malzemeTuru = t.AcikArtirma.Malzeme.Turu,
+                    malzemeMiktari = t.AcikArtirma.Malzeme.MiktarKg,
+                    teklifTutar = t.TeklifTutar,
+                    tarih = t.Tarih,
+                    durum = t.Durum
                 })
                 .ToListAsync();
 
-            if (!teklifler.Any())
-                return Ok("Henüz teklif verilmemiş.");
-
-            return Ok(teklifler);
+            return Ok(teklifler); // ❗ Hangi durumda olursa olsun JSON liste döner
         }
-        
-        
+
         
         
         [HttpGet("verisayfa/{acikArtirmaId}")]
         [Authorize(Roles = "firma")]
         public async Task<IActionResult> TeklifVerSayfa(int acikArtirmaId)
         {
-            // 🔄 1. Email’i token'dan çek
             var email = User.FindFirst("name")?.Value;
 
-            // 🔄 2. Bu email’e ait firma var mı bak
             var firma = await _context.Kullanicilar
                 .FirstOrDefaultAsync(x => x.Email == email && x.Rol == "firma");
 
             if (firma == null)
                 return Unauthorized("Firma bilgisi bulunamadı.");
 
-            // 🔄 3. Açık artırma detaylarını çek
             var acikArtirma = await _context.AcikArtirmalar
                 .Include(x => x.Malzeme)
                 .Include(x => x.Araci)
@@ -97,19 +92,30 @@ namespace EBM.Controllers
             if (acikArtirma == null)
                 return NotFound("Açık artırma bulunamadı veya aktif değil.");
 
-            // 🔄 4. DTO ile geri dön
+            var kendiTeklif = acikArtirma.Teklifler
+                .Where(t => t.FirmaId == firma.Id)
+                .OrderByDescending(t => t.Tarih)
+                .FirstOrDefault();
+
             var dto = new TeklifVerSayfaDto
             {
                 AcikArtirmaId = acikArtirma.Id,
                 MalzemeAdi = acikArtirma.Malzeme.Turu,
+                MiktarKg = acikArtirma.Malzeme.MiktarKg, // ✅ eklendi
                 AraciAdi = acikArtirma.Araci.AdSoyad,
+                AraciTelefon = acikArtirma.Araci.Telefon,
                 EnYuksekTeklif = acikArtirma.Teklifler.Max(t => (decimal?)t.TeklifTutar),
-                FirmaAdi = firma.AdSoyad
+                ToplamTeklifSayisi = acikArtirma.Teklifler.Count,
+                FirmaAdi = firma.AdSoyad,
+                KendiTeklifTutar = kendiTeklif?.TeklifTutar,
+                KendiTeklifDurumu = kendiTeklif?.Durum
             };
+            Console.WriteLine("Araci Telefon: " + acikArtirma.Araci.Telefon);
+
 
             return Ok(dto);
         }
-        
+
         
         [HttpPost("ver")]
         [Authorize(Roles = "firma")]

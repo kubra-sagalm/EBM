@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 using EBM.Data;
 using EBM.Models;
 using Microsoft.EntityFrameworkCore;
@@ -20,35 +21,46 @@ public class MusteriController : ControllerBase
         _context = context;
     }
 
-    // 🎁 Ödül alma işlemi
     [HttpPost("odul-al")]
-    public IActionResult OdulAl([FromBody] int odulId)
+    public IActionResult OdulAl([FromBody] JsonElement body)
     {
-        var email = User.FindFirstValue("name");
-        var kullanici = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+        try
+        {
+            if (!body.TryGetProperty("odulId", out JsonElement odulIdElement))
+                return BadRequest("odulId alanı eksik.");
 
-        if (kullanici == null)
-            return Unauthorized("Kullanıcı bulunamadı.");
+            int odulId = odulIdElement.GetInt32(); // 🟢 int olarak al
 
-        var odul = _context.Oduller.FirstOrDefault(o => o.Id == odulId);
-        if (odul == null)
-            return NotFound("Ödül bulunamadı.");
+            var email = User.FindFirstValue("name");
+            var kullanici = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+            if (kullanici == null)
+                return Unauthorized("Kullanıcı bulunamadı.");
 
-        if (odul.KullaniciId != null)
-            return BadRequest("Bu ödül zaten alınmış.");
+            var odul = _context.Oduller.FirstOrDefault(o => o.Id == odulId);
+            if (odul == null)
+                return NotFound("Ödül bulunamadı.");
 
-        if (kullanici.CipBakiye < odul.GerekliCip)
-            return BadRequest("Yeterli cip bakiyeniz yok.");
+            if (odul.KullaniciId != null)
+                return BadRequest("Bu ödül zaten alınmış.");
 
-        // Çipi düş ve ödülü ilişkilendir
-        kullanici.CipBakiye -= odul.GerekliCip;
-        odul.KullaniciId = kullanici.Id;
-        odul.AlinmaTarihi = DateTime.UtcNow; // ✅ UTC time
+            if (kullanici.CipBakiye < odul.GerekliCip)
+                return BadRequest("Yeterli cip bakiyeniz yok.");
 
+            kullanici.CipBakiye -= odul.GerekliCip;
+            odul.KullaniciId = kullanici.Id;
+            odul.AlinmaTarihi = DateTime.UtcNow;
 
-        _context.SaveChanges();
-        return Ok("Ödül başarıyla alındı.");
+            _context.SaveChanges();
+
+            return Ok("Ödül başarıyla alındı.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("🔥 Sunucu hatası: " + ex.Message);
+            return StatusCode(500, "Sunucuda hata oluştu.");
+        }
     }
+
     
     [HttpGet("odul/listele")]
     public IActionResult TumOdulleriListele()
@@ -103,6 +115,20 @@ public class MusteriController : ControllerBase
     }
     
     
+    [HttpGet("mevcut-cip")]
+    [Authorize(Roles = "musteri")]
+    public IActionResult GetCipBakiye()
+    {
+        var email = User.FindFirstValue("name");
+        var musteri = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+
+        if (musteri == null)
+            return NotFound("Kullanıcı bulunamadı.");
+
+        return Ok(musteri.CipBakiye); // int ya da decimal olabilir
+    }
+
+
     [Authorize]
     [HttpGet("gecmisim")]
     public async Task<IActionResult> MalzemeGecmisi()

@@ -39,7 +39,7 @@ public class AuthController : ControllerBase
             Telefon = model.Telefon,
             Adres = model.Adres,
             Rol = model.Rol,
-            CipBakiye = 0,
+            CipBakiye = model.Rol.ToLower() == "araci" ? 100 : 0,
             ParaBakiye = 0
         };
 

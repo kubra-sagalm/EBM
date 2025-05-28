@@ -161,6 +161,19 @@ public class AraciController : ControllerBase
         return Ok(malzeme);
     }
     
+    [HttpGet("mevcut-cip")]
+    [Authorize(Roles = "araci")]
+    public IActionResult GetCipBakiyesi()
+    {
+        var email = User.FindFirstValue("name");
+        var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
+
+        if (araci == null)
+            return NotFound();
+
+        return Ok(araci.CipBakiye); // örn: 475
+    }
+
     [HttpPost("malzeme-bloke-iptal")]
     [Authorize(Roles = "araci")]
     public IActionResult BlokeyiIptalEt([FromBody] int malzemeId)
@@ -170,15 +183,23 @@ public class AraciController : ControllerBase
 
         var malzeme = _context.Malzemeler.FirstOrDefault(m =>
             m.Id == malzemeId &&
-            m.BlokeEdenAraciId == araci.Id &&
-            m.Durum == "bloke edildi");
+            m.BlokeEdenAraciId == araci.Id);
 
         if (malzeme == null)
-            return NotFound("Bu malzeme size ait değil veya bloke edilmemiş.");
+            return NotFound("Bu malzeme size ait değil veya bulunamadı.");
 
+        // 🔒 Satıldıysa işlem yapılmasın
+        if (malzeme.Durum == "satildi")
+            return BadRequest("Bu malzeme satılmış. Bloke iptali yapılamaz.");
+
+        // 🔒 Sadece 'bloke edildi' durumundakiler iptal edilebilir
+        if (malzeme.Durum != "bloke edildi")
+            return BadRequest("Bu malzeme şu anda bloke durumda değil.");
+
+        // Bloke iptal işlemi
         malzeme.Durum = "Beklemede";
         malzeme.BlokeEdenAraciId = null;
-        malzeme.BlokeEdilmeTarihi = null; // 🔴 Bloke tarihi de sıfırlanır
+        malzeme.BlokeEdilmeTarihi = null;
 
         _context.SaveChanges();
 
@@ -486,11 +507,11 @@ public class AraciController : ControllerBase
 
         return Ok(teklifler);
     }
-
     
-    [HttpGet("teklif-detay/{teklifId}")]
+    
+    [HttpGet("acik-artirma-detay/{acikArtirmaId}")]
     [Authorize(Roles = "araci")]
-    public IActionResult TeklifDetay(int teklifId)
+    public IActionResult AcikArtirmaDetay(int acikArtirmaId)
     {
         var email = User.FindFirstValue("name");
         var araci = _context.Kullanicilar.FirstOrDefault(k => k.Email == email);
@@ -502,12 +523,14 @@ public class AraciController : ControllerBase
             .Include(t => t.Firma)
             .Include(t => t.AcikArtirma)
             .ThenInclude(a => a.Malzeme)
-            .FirstOrDefault(t =>
-                t.Id == teklifId &&
-                t.AcikArtirma.AraciId == araci.Id); // sadece kendi malzemesi kontrolü
+            .Where(t =>
+                t.AcikArtirmaId == acikArtirmaId &&
+                t.AcikArtirma.AraciId == araci.Id)
+            .OrderByDescending(t => t.TeklifTutar) // en yüksek teklifi al
+            .FirstOrDefault();
 
         if (teklif == null)
-            return NotFound("Bu teklif size ait bir açık artırma ile ilişkili değil.");
+            return NotFound("Bu açık artırma size ait değil veya teklif yok.");
 
         var detay = new
         {
